@@ -3,27 +3,13 @@ import pandas as pan
 import numpy as num
 import plotly.express as px
 import plotly.graph_objects as go
-from sqlalchemy import create_engine, text
 
 strel.set_page_config(
     page_title="Análisis Sesgo IA",
     layout="wide"
 )
 
-bdcon = {
-    'host': 'localhost',
-    'user': 'nico',
-    'password': '123',
-    'database': 'hiringbia'
-}
-
-eng = create_engine(
-    f"mysql+pymysql://{bdcon['user']}:{bdcon['password']}@"
-    f"{bdcon['host']}/{bdcon['database']}"
-)
-with eng.connect() as conn:
-    dtf = pan.read_sql(text("SELECT * FROM candidates"), conn)
-
+dtf = pan.read_csv('datos_procesados.csv')
 kp = pan.read_csv('indicadores.csv')
 gen_summary = pan.read_csv('resumen_genero.csv')
 
@@ -52,14 +38,14 @@ sal_range = strel.sidebar.slider(
     (min_sal, max_sal)
 )
 
-dtf = dtf.copy()
+df_filt = dtf.copy()
 if sel_gender != 'Todos':
-    dtf = dtf[dtf['gender'] == sel_gender]
+    df_filt = df_filt[df_filt['gender'] == sel_gender]
 if sel_tier != 'Todos':
-    dtf = dtf[dtf['university_tier'] == sel_tier]
-dtf = dtf[
-    (dtf['expected_salary'] >= sal_range[0]) &
-    (dtf['expected_salary'] <= sal_range[1])
+    df_filt = df_filt[df_filt['university_tier'] == sel_tier]
+df_filt = df_filt[
+    (df_filt['expected_salary'] >= sal_range[0]) &
+    (df_filt['expected_salary'] <= sal_range[1])
 ]
 
 strel.header("Indicadores Clave")
@@ -67,15 +53,15 @@ strel.header("Indicadores Clave")
 col1, col2, col3, col4 = strel.columns(4)
 
 with col1:
-    hire_rate = (dtf['hired'].sum() / len(dtf)) * 100
+    hire_rate = (df_filt['hired'].sum() / len(df_filt)) * 100
     strel.metric("Tasa Contratación", f"{hire_rate:.1f}%")
 
 with col2:
-    total = len(dtf)
+    total = len(df_filt)
     strel.metric("Total Candidatos", f"{total:,}")
 
 with col3:
-    gen_rates = dtf.groupby('gender')['hired'].mean()
+    gen_rates = df_filt.groupby('gender')['hired'].mean()
     if 'Male' in gen_rates.index and 'Female' in gen_rates.index:
         di = gen_rates.get('Female', 0) / gen_rates.get('Male', 1)
         strel.metric("DI (Female/Male)", f"{di:.3f}")
@@ -83,16 +69,16 @@ with col3:
         strel.metric("DI (Female/Male)", "N/A")
 
 with col4:
-    avg_bias = dtf['ai_bias_score'].mean()
+    avg_bias = df_filt['ai_bias_score'].mean()
     strel.metric("AI Bias Score Promedio", f"{avg_bias:.1f}")
-
+    
 strel.header("Análisis de Sesgo por Grupo")
 
 col1, col2 = strel.columns(2)
 
 with col1:
     strel.subheader("Tasa de Contratación por Género")
-    gen_hire = dtf.groupby('gender')['hired'].mean() * 100
+    gen_hire = df_filt.groupby('gender')['hired'].mean() * 100
     gen_hire = gen_hire.sort_values(ascending=False)
     
     fig1 = px.bar(
@@ -108,7 +94,7 @@ with col1:
 
 with col2:
     strel.subheader("Tasa de Contratación por Tier")
-    tier_hire = dtf.groupby('university_tier')['hired'].mean() * 100
+    tier_hire = df_filt.groupby('university_tier')['hired'].mean() * 100
     tier_hire = tier_hire.sort_values(ascending=False)
     
     fig2 = px.bar(
@@ -129,7 +115,7 @@ col1, col2 = strel.columns(2)
 with col1:
     strel.subheader("Distribución de AI Bias Score por Género")
     fig3 = px.box(
-        dtf,
+        df_filt,
         x='gender',
         y='ai_bias_score',
         color='gender',
@@ -141,7 +127,7 @@ with col1:
 with col2:
     strel.subheader("AI Bias Score vs Skill Técnico")
     fig4 = px.scatter(
-        dtf,
+        df_filt,
         x='technical_skill_score',
         y='ai_bias_score',
         color='hired',
@@ -159,7 +145,7 @@ strel.header("Matriz de Correlación")
 
 corr_vars = ['ai_bias_score', 'technical_skill_score', 
              'communication_score', 'years_experience', 'hired']
-corr_mat = dtf[corr_vars].corr()
+corr_mat = df_filt[corr_vars].corr()
 
 fig5 = go.Figure(data=go.Heatmap(
     z=corr_mat.values,
@@ -192,7 +178,7 @@ with col2:
     strel.dataframe(gen_summary, use_container_width=True)
 
 with strel.expander("Ver Datos Filtrados"):
-    strel.dataframe(dtf, use_container_width=True)
-    strel.caption(f"Mostrando {len(dtf)} registros de {len(dtf)} totales")
+    strel.dataframe(df_filt, use_container_width=True)
+    strel.caption(f"Mostrando {len(df_filt)} registros de {len(dtf)} totales")
     
 strel.markdown("---")
