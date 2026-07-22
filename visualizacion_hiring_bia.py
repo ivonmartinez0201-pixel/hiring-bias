@@ -16,8 +16,10 @@ gen_summary = pan.read_csv('resumen_genero.csv')
 strel.title("Análisis de Sesgo en Contratación con Inteligencia Artificial")
 strel.markdown("""
 **Contexto del Análisis**
-Este proyecto examina el comportamiento de un sistema de inteligencia artificial diseñado para apoyar decisiones de contratación en el sector tecnológico. 
-El estudio se centra en identificar posibles sesgos en las puntuaciones asignadas por el algoritmo a distintos grupos de candidatos.
+Este proyecto examina el comportamiento de un sistema de inteligencia artificial 
+diseñado para apoyar decisiones de contratación en el sector tecnológico. 
+El estudio se centra en identificar posibles sesgos en las puntuaciones 
+asignadas por el algoritmo a distintos grupos de candidatos.
 """)
 
 strel.sidebar.header("Filtros")
